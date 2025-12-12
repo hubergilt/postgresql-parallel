@@ -9,15 +9,15 @@ First, install the Citus extension and configure the PostgreSQL server to handle
 - **Install the Repository and Package** Run the installation script and install the PostgreSQL 16 Citus extension on coordinator node and worker nodes:
 
 ```bash
- curl https://install.citusdata.com/community/deb.sh | sudo bash
- sudo apt install postgresql-16-citus-13.2
+$ curl https://install.citusdata.com/community/deb.sh | sudo bash
+$ sudo apt install postgresql-16-citus-13.2
 ```
 
 - **Configure PostgreSQL Settings** Switch to the postgres user and edit the configuracion files to allow network connection and load the Citus library:
   - **Edit** postgresql.conf:
 
     ```bash
-     sudo su - postgres
+    $ sudo su - postgres
     postgres@pop-os:~$ nvim 16/main/postgresql.conf
     #Add or modify these lines:
     listen_addresses = '*'
@@ -42,12 +42,12 @@ First, install the Citus extension and configure the PostgreSQL server to handle
   - **Configure Passwordless Access** (.pgpass) To ensure nodes can communicate without manual password entry, add credentials to ~/.pgpass and set permissions:
 
     ```bash
-     nvim ~/.pgpass
+    $ nvim ~/.pgpass
     #Add or modify this line:
     popos.lan:5432:citusdb:huber:huber
     citus01.lan:5432:citusdb:huber:huber
     cutus02.lan:5432:citusdb:huber:huber
-     chmod 600 ~/.pgpass
+    $ chmod 600 ~/.pgpass
     ```
 
     _Note: Before configure proper IPs for popos (coordinator), citus01 and citus02 (workers)_
@@ -74,8 +74,8 @@ Once the service database is running, and enabled the extension then preparate t
 
   ```bash
   sudo -u postgres createuser -P -s -d huber
-   createdb citusdb
-   pgbench -i -s 64 citusdb
+  $ createdb citusdb
+  $ pgbench -i -s 64 citusdb
   ```
 
 - **Modify Primary Keys** Citus requires the distribution column to be part of the Primary Key. Modify `pgbench_accounts` to include `bid`:
