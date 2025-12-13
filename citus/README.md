@@ -171,6 +171,7 @@ Initially, all shards reside on the coordinator. You must reguister the worker n
 select citus_set_coordinator_host('popos.lan', 5432);
  citus_set_coordinator_host
 ----------------------------
+(1 row)
 ```
 
 - **Add Worker Nodes** Add the worker nodes (`citus01.lan` and `citus02.lan`) to the cluster:
