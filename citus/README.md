@@ -25,6 +25,8 @@ $ sudo apt install postgresql-16-citus-13.2
     wal_level = 'logical'
     ```
 
+    _Nota: If there are multiple shared libraries use citus as first one_
+
   - **Edit** pg_hba.conf: Allow the local network (192.168.0.0/24) to connect via SCRAM-SHA-256:
 
     ```bash
