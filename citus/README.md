@@ -38,7 +38,7 @@ $ sudo apt install postgresql-16-citus-13.2
   - **User Setup** Create a user (`huber`):
 
     ```bash
-    sudo -u postgres createuser -P -s -d huber
+    $ sudo -u postgres createuser -P -s -d huber
     ```
 
   - **Configure Passwordless Access** (.pgpass) To ensure nodes can communicate without manual password entry, add credentials to ~/.pgpass and set permissions:
@@ -75,7 +75,7 @@ Once the service database is running, and enabled the extension then preparate t
 - **Database Setup** Create the database (`citusdb`), and generate sample data using pgbench:
 
   ```bash
-  sudo -u postgres createuser -P -s -d huber
+  $ sudo -u postgres createuser -P -s -d huber
   $ createdb citusdb
   $ pgbench -i -s 64 citusdb
   ```
