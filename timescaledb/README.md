@@ -201,7 +201,7 @@ done
 tsdb=# \timing on
 Timing is on.
 tsdb=# SELECT COUNT(*) FROM rides_normal;
-  count   
+  count
 ----------
  15168579
 (1 row)
@@ -209,12 +209,13 @@ tsdb=# SELECT COUNT(*) FROM rides_normal;
 Time: 436.686 ms
 tsdb=# \timing off
 Timing is off.
+
 -- Hypertable
 
 tsdb=# \timing on
 Timing is on.
 tsdb=# SELECT COUNT(*) FROM rides;
-  count   
+  count
 ----------
  15168579
 (1 row)
@@ -229,10 +230,11 @@ Timing is off.
 
 ```sql
 -- Normal table
+
 tsdb=# \timing on
 Timing is on.
 tsdb=# SELECT COUNT(*) FROM rides;
-  count   
+  count
 ----------
  15168579
 (1 row)
@@ -240,10 +242,11 @@ tsdb=# SELECT COUNT(*) FROM rides;
 Time: 360.122 ms
 tsdb=# \timing off
 Timing is off.
+
 tsdb=# EXPLAIN ANALYZE
 SELECT MIN(tpep_pickup_datetime), MAX(tpep_pickup_datetime)
 FROM rides_normal;
-                                                                                     QUERY PLAN                                                                                     
+                                                                                     QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Result  (cost=0.93..0.94 rows=1 width=16) (actual time=0.481..0.481 rows=1 loops=1)
    InitPlan 1 (returns $0)
@@ -261,10 +264,11 @@ FROM rides_normal;
 (13 rows)
 
 -- Hypertable
-EXPLAIN ANALYZE
+
+tsdb=# EXPLAIN ANALYZE
 SELECT MIN(tpep_pickup_datetime), MAX(tpep_pickup_datetime)
 FROM rides;
-                                                                                                       QUERY PLAN                                                                                                       
+                                                                                                       QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Result  (cost=0.44..0.45 rows=1 width=16) (actual time=0.024..0.025 rows=1 loops=1)
    InitPlan 1 (returns $0)
@@ -410,6 +414,7 @@ FROM rides;
 
 ```sql
 -- Normal table
+
 tsdb=# EXPLAIN ANALYZE
 SELECT
     DATE_TRUNC('day', tpep_pickup_datetime) AS day,
@@ -428,7 +433,7 @@ SELECT
 FROM rides_normal
 GROUP BY day
 ORDER BY day;
-                                                                QUERY PLAN                                                                
+                                                                QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------
  Sort  (cost=2791942.49..2804766.06 rows=5129429 width=56) (actual time=3278.574..3278.579 rows=124 loops=1)
    Sort Key: (date_trunc('day'::text, tpep_pickup_datetime))
@@ -445,9 +450,9 @@ ORDER BY day;
  Execution Time: 3279.459 ms
 (13 rows)
 
-
 -- Hypertable with time_bucket
-EXPLAIN ANALYZE
+
+tsdb=# EXPLAIN ANALYZE
 SELECT
     time_bucket('1 day', tpep_pickup_datetime) AS day,
     COUNT(*) AS trips,
@@ -456,7 +461,7 @@ SELECT
 FROM rides
 GROUP BY day
 ORDER BY day;
-                                                                             QUERY PLAN                                                                             
+                                                                             QUERY PLAN
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Sort  (cost=404745.97..404746.47 rows=200 width=56) (actual time=2321.918..2326.617 rows=123 loops=1)
    Sort Key: (time_bucket('1 day'::interval, rides.tpep_pickup_datetime))
@@ -568,33 +573,87 @@ ORDER BY day;
 
 ```sql
 -- Normal table
-EXPLAIN ANALYZE
+tsdb=# EXPLAIN ANALYZE
 SELECT
     DATE_TRUNC('hour', tpep_pickup_datetime) AS hour,
     COUNT(*) AS trips,
     AVG(fare_amount) AS avg_fare
 FROM rides_normal
-WHERE tpep_pickup_datetime >= NOW() - INTERVAL '7 days'
+WHERE tpep_pickup_datetime >= '2025-05-01'::date - INTERVAL '7 days'
 GROUP BY hour
 ORDER BY hour;
+tsdb=# EXPLAIN ANALYZE
+SELECT
+    DATE_TRUNC('hour', tpep_pickup_datetime) AS hour,
+    COUNT(*) AS trips,
+    AVG(fare_amount) AS avg_fare
+FROM rides_normal
+WHERE tpep_pickup_datetime >= '2025-05-01'::date - INTERVAL '7 days'
+GROUP BY hour
+ORDER BY hour;
+                                                                             QUERY PLAN
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=206351.26..230734.22 rows=949340 width=48) (actual time=355.763..450.134 rows=169 loops=1)
+   Group Key: (date_trunc('hour'::text, tpep_pickup_datetime))
+   ->  Sort  (cost=206351.26..208886.97 rows=1014286 width=14) (actual time=355.503..393.248 rows=972853 loops=1)
+         Sort Key: (date_trunc('hour'::text, tpep_pickup_datetime))
+         Sort Method: external merge  Disk: 23640kB
+         ->  Index Scan using idx_rides_normal_pickup on rides_normal  (cost=0.43..87830.42 rows=1014286 width=14) (actual time=4.494..256.740 rows=972853 loops=1)
+               Index Cond: (tpep_pickup_datetime >= '2025-04-24 00:00:00'::timestamp without time zone)
+ Planning Time: 0.128 ms
+ JIT:
+   Functions: 9
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 0.463 ms, Inlining 0.000 ms, Optimization 0.230 ms, Emission 4.251 ms, Total 4.944 ms
+ Execution Time: 452.883 ms
+(13 rows)
 
 -- Hypertable
-EXPLAIN ANALYZE
+tsdb=# EXPLAIN ANALYZE
 SELECT
     time_bucket('1 hour', tpep_pickup_datetime) AS hour,
     COUNT(*) AS trips,
     AVG(fare_amount) AS avg_fare
 FROM rides
-WHERE tpep_pickup_datetime >= NOW() - INTERVAL '7 days'
+WHERE tpep_pickup_datetime >= '2025-05-01'::date - INTERVAL '7 days'
 GROUP BY hour
 ORDER BY hour;
+                                                                            QUERY PLAN
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=29023.39..29023.89 rows=200 width=48) (actual time=308.591..313.755 rows=169 loops=1)
+   Sort Key: (time_bucket('01:00:00'::interval, rides.tpep_pickup_datetime))
+   Sort Method: quicksort  Memory: 34kB
+   ->  Finalize HashAggregate  (cost=29012.75..29015.75 rows=200 width=48) (actual time=308.520..313.723 rows=169 loops=1)
+         Group Key: (time_bucket('01:00:00'::interval, rides.tpep_pickup_datetime))
+         Batches: 1  Memory Usage: 160kB
+         ->  Gather  (cost=1000.42..28928.75 rows=8400 width=48) (actual time=308.194..313.517 rows=483 loops=1)
+               Workers Planned: 2
+               Workers Launched: 2
+               ->  Parallel Custom Scan (ChunkAppend) on rides  (cost=0.42..27088.75 rows=4200 width=48) (actual time=206.162..293.190 rows=161 loops=3)
+                     Chunks excluded during startup: 19
+                     ->  Partial HashAggregate  (cost=25608.22..25611.22 rows=200 width=48) (actual time=284.714..284.768 rows=159 loops=3)
+                           Group Key: time_bucket('01:00:00'::interval, _hyper_1_20_chunk.tpep_pickup_datetime)
+                           Batches: 1  Memory Usage: 96kB
+                           Worker 0:  Batches: 1  Memory Usage: 96kB
+                           Worker 1:  Batches: 1  Memory Usage: 96kB
+                           ->  Parallel Seq Scan on _hyper_1_20_chunk  (cost=0.00..22693.28 rows=388658 width=14) (actual time=0.305..249.098 rows=310482 loops=3)
+                                 Filter: (tpep_pickup_datetime >= '2025-04-24 00:00:00'::timestamp without time zone)
+                                 Rows Removed by Filter: 13399
+                     ->  Partial HashAggregate  (cost=1285.05..1288.05 rows=200 width=48) (actual time=25.213..25.215 rows=6 loops=1)
+                           Group Key: time_bucket('01:00:00'::interval, _hyper_1_21_chunk.tpep_pickup_datetime)
+                           Worker 0:  Batches: 1  Memory Usage: 40kB
+                           ->  Parallel Seq Scan on _hyper_1_21_chunk  (cost=0.00..1102.37 rows=24358 width=14) (actual time=0.463..20.875 rows=41408 loops=1)
+                                 Filter: (tpep_pickup_datetime >= '2025-04-24 00:00:00'::timestamp without time zone)
+ Planning Time: 21.722 ms
+ Execution Time: 313.922 ms
+(26 rows)
 ```
 
 ### Complex Aggregation Query
 
 ```sql
 -- Normal table
-EXPLAIN ANALYZE
+tsdb=# EXPLAIN ANALYZE
 SELECT
     DATE_TRUNC('hour', tpep_pickup_datetime) AS hour,
     payment_type,
@@ -606,9 +665,25 @@ FROM rides_normal
 WHERE tpep_pickup_datetime BETWEEN '2025-01-01' AND '2025-01-31'
 GROUP BY hour, payment_type
 ORDER BY hour, payment_type;
+                                                                                        QUERY PLAN
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=699208.75..815093.55 rows=2587957 width=68) (actual time=1332.633..2048.530 rows=3591 loops=1)
+   Group Key: (date_trunc('hour'::text, tpep_pickup_datetime)), payment_type
+   ->  Sort  (cost=699208.75..707224.46 rows=3206283 width=26) (actual time=1332.265..1474.760 rows=3341626 loops=1)
+         Sort Key: (date_trunc('hour'::text, tpep_pickup_datetime)), payment_type
+         Sort Method: external merge  Disk: 133808kB
+         ->  Index Scan using idx_rides_normal_pickup on rides_normal  (cost=0.43..199304.27 rows=3206283 width=26) (actual time=83.557..890.488 rows=3341626 loops=1)
+               Index Cond: ((tpep_pickup_datetime >= '2025-01-01 00:00:00-05'::timestamp with time zone) AND (tpep_pickup_datetime <= '2025-01-31 00:00:00-05'::timestamp with time zone))
+ Planning Time: 0.247 ms
+ JIT:
+   Functions: 10
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 0.904 ms, Inlining 16.308 ms, Optimization 42.509 ms, Emission 24.728 ms, Total 84.448 ms
+ Execution Time: 2060.182 ms
+(13 rows)
 
 -- Hypertable
-EXPLAIN ANALYZE
+tsdb=# EXPLAIN ANALYZE
 SELECT
     time_bucket('1 hour', tpep_pickup_datetime) AS hour,
     payment_type,
@@ -620,12 +695,46 @@ FROM rides
 WHERE tpep_pickup_datetime BETWEEN '2025-01-01' AND '2025-01-31'
 GROUP BY hour, payment_type
 ORDER BY hour, payment_type;
+
+                                                                                                 QUERY PLAN
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=704092.03..771730.89 rows=40000 width=68) (actual time=1829.476..2553.709 rows=3591 loops=1)
+   Group Key: (time_bucket('01:00:00'::interval, rides.tpep_pickup_datetime)), rides.payment_type
+   ->  Sort  (cost=704092.03..712446.88 rows=3341943 width=26) (actual time=1829.100..1977.888 rows=3341626 loops=1)
+         Sort Key: (time_bucket('01:00:00'::interval, rides.tpep_pickup_datetime)), rides.payment_type
+         Sort Method: external merge  Disk: 133800kB
+         ->  Result  (cost=0.00..182032.81 rows=3341943 width=26) (actual time=212.052..1379.424 rows=3341626 loops=1)
+               ->  Append  (cost=0.00..140258.52 rows=3341943 width=26) (actual time=212.049..1216.715 rows=3341626 loops=1)
+                     ->  Seq Scan on _hyper_1_1_chunk  (cost=0.00..2433.38 rows=74719 width=26) (actual time=212.049..231.556 rows=75404 loops=1)
+                           Filter: ((tpep_pickup_datetime >= '2025-01-01 00:00:00-05'::timestamp with time zone) AND (tpep_pickup_datetime <= '2025-01-31 00:00:00-05'::timestamp with time zone))
+                           Rows Removed by Filter: 21
+                     ->  Seq Scan on _hyper_1_2_chunk  (cost=0.00..20458.69 rows=632313 width=26) (actual time=0.386..152.743 rows=632313 loops=1)
+                           Filter: ((tpep_pickup_datetime >= '2025-01-01 00:00:00-05'::timestamp with time zone) AND (tpep_pickup_datetime <= '2025-01-31 00:00:00-05'::timestamp with time zone))
+                     ->  Seq Scan on _hyper_1_3_chunk  (cost=0.00..25783.17 rows=798611 width=26) (actual time=0.367..189.462 rows=798611 loops=1)
+                           Filter: ((tpep_pickup_datetime >= '2025-01-01 00:00:00-05'::timestamp with time zone) AND (tpep_pickup_datetime <= '2025-01-31 00:00:00-05'::timestamp with time zone))
+                     ->  Seq Scan on _hyper_1_4_chunk  (cost=0.00..26682.47 rows=831031 width=26) (actual time=0.277..190.541 rows=831031 loops=1)
+                           Filter: ((tpep_pickup_datetime >= '2025-01-01 00:00:00-05'::timestamp with time zone) AND (tpep_pickup_datetime <= '2025-01-31 00:00:00-05'::timestamp with time zone))
+                     ->  Seq Scan on _hyper_1_5_chunk  (cost=0.00..26840.01 rows=833401 width=26) (actual time=0.302..184.419 rows=833401 loops=1)
+                           Filter: ((tpep_pickup_datetime >= '2025-01-01 00:00:00-05'::timestamp with time zone) AND (tpep_pickup_datetime <= '2025-01-31 00:00:00-05'::timestamp with time zone))
+                     ->  Bitmap Heap Scan on _hyper_1_6_chunk  (cost=3598.07..21351.09 rows=171868 width=26) (actual time=46.361..130.807 rows=170866 loops=1)
+                           Recheck Cond: ((tpep_pickup_datetime >= '2025-01-01 00:00:00-05'::timestamp with time zone) AND (tpep_pickup_datetime <= '2025-01-31 00:00:00-05'::timestamp with time zone))
+                           Heap Blocks: exact=3093
+                           ->  Bitmap Index Scan on _hyper_1_6_chunk_rides_tpep_pickup_datetime_idx  (cost=0.00..3555.11 rows=171868 width=0) (actual time=45.613..45.613 rows=170866 loops=1)
+                                 Index Cond: ((tpep_pickup_datetime >= '2025-01-01 00:00:00-05'::timestamp with time zone) AND (tpep_pickup_datetime <= '2025-01-31 00:00:00-05'::timestamp with time zone))
+ Planning Time: 4.013 ms
+ JIT:
+   Functions: 31
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 1.142 ms, Inlining 10.846 ms, Optimization 123.727 ms, Emission 77.236 ms, Total 212.952 ms
+ Execution Time: 2566.434 ms
+(29 rows)
 ```
 
 ### Table Size Comparison
 
 ```sql
 -- Check table sizes
+tsdb=# -- Check table sizes
 SELECT
     'rides_normal' AS table_name,
     pg_size_pretty(pg_total_relation_size('rides_normal')) AS total_size,
@@ -637,16 +746,47 @@ SELECT
     pg_size_pretty(pg_total_relation_size('rides')) AS total_size,
     pg_size_pretty(pg_relation_size('rides')) AS table_size,
     pg_size_pretty(pg_indexes_size('rides')) AS indexes_size;
+  table_name  | total_size | table_size | indexes_size
+--------------+------------+------------+--------------
+ rides_normal | 2347 MB    | 2028 MB    | 318 MB
+ rides        | 16 kB      | 0 bytes    | 8192 bytes
+(2 rows)
+
 
 -- Check hypertable chunks
-SELECT
-    chunk_name,
+tsdb=# SELECT
+    format('%I.%I', chunk_schema, chunk_name)::regclass AS chunk,
     range_start,
     range_end,
-    pg_size_pretty(total_bytes) AS size
+    pg_size_pretty(pg_total_relation_size(format('%I.%I', chunk_schema, chunk_name)::regclass)) AS size
 FROM timescaledb_information.chunks
 WHERE hypertable_name = 'rides'
 ORDER BY range_start;
+                  chunk                  |      range_start       |       range_end        |  size
+-----------------------------------------+------------------------+------------------------+---------
+ _timescaledb_internal._hyper_1_13_chunk | 2007-11-28 19:00:00-05 | 2007-12-05 19:00:00-05 | 32 kB
+ _timescaledb_internal._hyper_1_11_chunk | 2008-12-31 19:00:00-05 | 2009-01-07 19:00:00-05 | 32 kB
+ _timescaledb_internal._hyper_1_1_chunk  | 2024-12-25 19:00:00-05 | 2025-01-01 19:00:00-05 | 12 MB
+ _timescaledb_internal._hyper_1_2_chunk  | 2025-01-01 19:00:00-05 | 2025-01-08 19:00:00-05 | 100 MB
+ _timescaledb_internal._hyper_1_3_chunk  | 2025-01-08 19:00:00-05 | 2025-01-15 19:00:00-05 | 125 MB
+ _timescaledb_internal._hyper_1_4_chunk  | 2025-01-15 19:00:00-05 | 2025-01-22 19:00:00-05 | 129 MB
+ _timescaledb_internal._hyper_1_5_chunk  | 2025-01-22 19:00:00-05 | 2025-01-29 19:00:00-05 | 130 MB
+ _timescaledb_internal._hyper_1_6_chunk  | 2025-01-29 19:00:00-05 | 2025-02-05 19:00:00-05 | 137 MB
+ _timescaledb_internal._hyper_1_7_chunk  | 2025-02-05 19:00:00-05 | 2025-02-12 19:00:00-05 | 138 MB
+ _timescaledb_internal._hyper_1_8_chunk  | 2025-02-12 19:00:00-05 | 2025-02-19 19:00:00-05 | 139 MB
+ _timescaledb_internal._hyper_1_9_chunk  | 2025-02-19 19:00:00-05 | 2025-02-26 19:00:00-05 | 134 MB
+ _timescaledb_internal._hyper_1_10_chunk | 2025-02-26 19:00:00-05 | 2025-03-05 19:00:00-05 | 149 MB
+ _timescaledb_internal._hyper_1_12_chunk | 2025-03-05 19:00:00-05 | 2025-03-12 19:00:00-05 | 143 MB
+ _timescaledb_internal._hyper_1_14_chunk | 2025-03-12 19:00:00-05 | 2025-03-19 19:00:00-05 | 146 MB
+ _timescaledb_internal._hyper_1_15_chunk | 2025-03-19 19:00:00-05 | 2025-03-26 19:00:00-05 | 141 MB
+ _timescaledb_internal._hyper_1_16_chunk | 2025-03-26 19:00:00-05 | 2025-04-02 19:00:00-05 | 148 MB
+ _timescaledb_internal._hyper_1_17_chunk | 2025-04-02 19:00:00-05 | 2025-04-09 19:00:00-05 | 145 MB
+ _timescaledb_internal._hyper_1_18_chunk | 2025-04-09 19:00:00-05 | 2025-04-16 19:00:00-05 | 142 MB
+ _timescaledb_internal._hyper_1_19_chunk | 2025-04-16 19:00:00-05 | 2025-04-23 19:00:00-05 | 136 MB
+ _timescaledb_internal._hyper_1_20_chunk | 2025-04-23 19:00:00-05 | 2025-04-30 19:00:00-05 | 150 MB
+ _timescaledb_internal._hyper_1_21_chunk | 2025-04-30 19:00:00-05 | 2025-05-07 19:00:00-05 | 6792 kB
+(21 rows)
+
 ```
 
 ## 4. Advanced TimescaleDB Features
@@ -702,18 +842,21 @@ WHERE hypertable_name = 'rides';
 ## 5. Key Takeaways
 
 **When to use TimescaleDB Hypertables:**
+
 - Large time-series datasets (millions of rows)
 - Frequent time-based queries and aggregations
 - Need for automatic data retention/compression
 - Real-time analytics requirements
 
 **Performance Benefits:**
+
 - Faster time-range queries through chunk exclusion
 - Efficient time-based aggregations with `time_bucket()`
 - Reduced storage with compression
 - Pre-computed results with continuous aggregates
 
 **Normal PostgreSQL Tables are fine for:**
+
 - Small datasets (< 1M rows)
 - Non-time-series data
 - Simple queries without time-based patterns
