@@ -805,17 +805,27 @@ SELECT
     SUM(total_amount) AS total_revenue
 FROM rides
 GROUP BY hour;
+NOTICE:  refreshing continuous aggregate "rides_hourly"
+HINT:  Use WITH NO DATA if you do not want to refresh the continuous aggregate on creation.
+CREATE MATERIALIZED VIEW
 
 -- Add refresh policy (auto-update)
 SELECT add_continuous_aggregate_policy('rides_hourly',
     start_offset => INTERVAL '3 hours',
     end_offset => INTERVAL '1 hour',
     schedule_interval => INTERVAL '1 hour');
+ add_continuous_aggregate_policy
+---------------------------------
+                            1000
+(1 row)
 
 -- Query the continuous aggregate (much faster!)
 SELECT * FROM rides_hourly
 WHERE hour >= NOW() - INTERVAL '7 days'
 ORDER BY hour DESC;
+ hour | trip_count | avg_fare | avg_distance | total_revenue
+------+------------+----------+--------------+---------------
+(0 rows)
 ```
 
 ### Compression Policy
@@ -826,17 +836,28 @@ ALTER TABLE rides SET (
     timescaledb.compress,
     timescaledb.compress_orderby = 'tpep_pickup_datetime DESC'
 );
+ALTER TABLE
 
 -- Add compression policy (compress data older than 7 days)
 SELECT add_compression_policy('rides', INTERVAL '7 days');
+ add_compression_policy
+------------------------
+                   1001
+(1 row)
 
 -- Check compression stats
-SELECT
-    pg_size_pretty(before_compression_total_bytes) AS before,
-    pg_size_pretty(after_compression_total_bytes) AS after,
-    ROUND(100 - (after_compression_total_bytes::float / before_compression_total_bytes::float * 100), 2) AS compression_ratio
-FROM timescaledb_information.compression_settings
-WHERE hypertable_name = 'rides';
+tsdb=# SELECT
+    total_chunks,
+    number_compressed_chunks,
+    pg_size_pretty(before_compression_total_bytes) AS before_compression,
+    pg_size_pretty(after_compression_total_bytes) AS after_compression,
+    ROUND((1 - after_compression_total_bytes::numeric / NULLIF(before_compression_total_bytes, 0)::numeric) * 100, 2) AS savings_percent
+FROM hypertable_compression_stats('rides');
+ total_chunks | number_compressed_chunks | before_compression | after_compression | savings_percent
+--------------+--------------------------+--------------------+-------------------+-----------------
+           21 |                       21 | 2351 MB            | 535 MB            |           77.24
+(1 row)
+
 ```
 
 ## 5. Key Takeaways
