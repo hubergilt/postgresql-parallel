@@ -1,4 +1,4 @@
-# Timescaledb Tutorial
+# Timescaledb Extension Tutorial
 
 This tutorial provides a comprehensive guide to installing, configuring, and using TimescaleDB—a PostgreSQL extension optimized for time-series data. Using the NYC taxi dataset as an example, it walks through the complete process from installation to performance comparison.
 
