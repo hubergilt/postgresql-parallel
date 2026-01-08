@@ -1,4 +1,4 @@
-# Dblink extension Tutorial
+# Dblink Extension Tutorial
 
 This tutorial provides a comprehensive guide to installing, configuring, and using dblink extension.
 
