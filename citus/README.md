@@ -1,4 +1,4 @@
-# Citus Distributed Database Tutorial
+# Citus Distributed Database Extension Tutorial
 
 This tutorial covers the installation of Citus 13.2 on PostgreSQL 16, configuring the coordinator node, distributing tables, and scaling out to worker nodes.
 
