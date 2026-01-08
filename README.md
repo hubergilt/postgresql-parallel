@@ -14,6 +14,7 @@ This repository provides practical implementations for running PostgreSQL stored
 | **TimescaleDB** | Time-series optimization | Parallel time-series operations |
 
 ## 📂 Project Structure
+```
 postgresql-parallel/
 ├── dblink/ # Using dblink extension for parallel connections
 │ ├── setup.sql # Database setup
@@ -34,3 +35,4 @@ postgresql-parallel/
 │ ├── procedures.sql # Time-aware parallel procedures
 │ └── parallel.sql # Parallel time-series operations
 └── README.md # This documentation
+```
