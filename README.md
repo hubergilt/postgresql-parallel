@@ -6,33 +6,26 @@ Examples demonstrating multiple approaches for executing PostgreSQL stored proce
 
 This repository provides practical implementations for running PostgreSQL stored procedures in parallel using four different methods:
 
-| Method | Approach | Best Use Case |
-|--------|----------|---------------|
-| **dblink** | Multiple database connections | Standard PostgreSQL environments |
-| **pg_background** | Background worker processes | Lower overhead parallel tasks |
-| **Citus** | Distributed PostgreSQL | Large-scale distributed workloads |
-| **TimescaleDB** | Time-series optimization | Parallel time-series operations |
+| Method            | Approach                      | Best Use Case                     |
+| ----------------- | ----------------------------- | --------------------------------- |
+| **dblink**        | Multiple database connections | Standard PostgreSQL environments  |
+| **pg_background** | Background worker processes   | Lower overhead parallel tasks     |
+| **Citus**         | Distributed PostgreSQL        | Large-scale distributed workloads |
+| **TimescaleDB**   | Time-series optimization      | Parallel time-series operations   |
 
 ## 📂 Project Structure
+
 ```
 postgresql-parallel/
 ├── dblink/ # Using dblink extension for parallel connections
-│ ├── setup.sql # Database setup
-│ ├── procedures.sql # Example stored procedures
-│ └── parallel.sql # Parallel execution logic
+│ ├── README.md # Dblink extension tutorial
+│ └── primes.sql # Parallel execution script example to find prime numbers
 ├── pg_background/ # Using pg_background extension
-│ ├── setup.sql
-│ ├── procedures.sql
-│ └── parallel.sql
+│ ├── README.md # Background extension tutorial
+│ └── primes.sql # Parallel execution script example to find prime numbers
 ├── citus/ # Using Citus distributed PostgreSQL
-│ ├── setup.sql # Citus cluster configuration
-│ ├── sharding.sql # Table sharding for distribution
-│ ├── procedures.sql # Distributed procedures
-│ └── parallel.sql # Parallel execution across nodes
+│ └── README.md # Citus extension tutorial
 ├── timescaledb/ # Using TimescaleDB capabilities
-│ ├── setup.sql # TimescaleDB installation & setup
-│ ├── hypertables.sql # Time-series table creation
-│ ├── procedures.sql # Time-aware parallel procedures
-│ └── parallel.sql # Parallel time-series operations
+│ └── README.md # Timescaledb extension tutorial
 └── README.md # This documentation
 ```
