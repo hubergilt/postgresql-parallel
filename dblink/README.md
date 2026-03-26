@@ -2,6 +2,49 @@
 
 This tutorial provides a comprehensive guide to installing, configuring, and using dblink extension.
 
+```mermaid
+flowchart LR
+    A["CALL parallel_sum_primes \ntotal workers=N"]
+
+    A --> B[Split range \ninto N chunks]
+
+    B --> C1[Conn1]
+    B --> C2[Conn2]
+    B --> C3[ConnN]
+
+    subgraph Setup_Connections
+        C1 --> D1["dblink_connect \nconn1"]
+        C2 --> D2["dblink_connect \nconn2"]
+        C3 --> D3["dblink_connect \nconnN"]
+    end
+
+    subgraph Async_Execution
+        D1 --> E1["dblink_send_query \nSELECT sum_primes r1"]
+        D2 --> E2["dblink_send_query \nSELECT sum_primes r2"]
+        D3 --> E3["dblink_send_query \nSELECT sum_primes rN"]
+    end
+
+    subgraph Parallel_Workers
+        E1 --> F1[Worker 1 \ncomputes primes]
+        E2 --> F2[Worker 2 \ncomputes primes]
+        E3 --> F3[Worker N \ncomputes primes]
+    end
+
+    subgraph Collect_Results
+        F1 --> G1["dblink_get_result \nconn1"]
+        F2 --> G2["dblink_get_result \nconn2"]
+        F3 --> G3["dblink_get_result \nconnN"]
+    end
+
+    G1 --> H[Aggregate SUM]
+    G2 --> H
+    G3 --> H
+
+    H --> I[Final result \ntotal primes sum]
+
+    I --> J[dblink_disconnect \nall N connections]
+```
+
 ## 1. Installation and Configuration
 
 - **Installation the Repository and Package**
