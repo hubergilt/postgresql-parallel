@@ -3,7 +3,7 @@
 This tutorial provides a comprehensive guide to installing, configuring, and using dblink extension.
 
 ```mermaid
-flowchart LR
+flowchart TD
     A["CALL parallel_sum_primes \ntotal workers=N"]
 
     A --> B[Split range \ninto N chunks]
