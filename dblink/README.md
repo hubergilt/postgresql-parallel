@@ -52,15 +52,13 @@ flowchart TD
   Dblink extension is already install within postgresql-16
 
 - **Configure PostgreSQL**
-  Switch to the postgres user and edit the configuracion file:
   - **Edit** postgresql.conf:
 
     ```bash
-    $ sudo su - postgres
-    postgres@pop-os:~$ nvim 16/main/postgresql.conf
+    $ sudo nvim /etc/postgresql/16/main/postgresql.conf
     ```
 
-    Add or modify the following line in the configuration file to preload the pg_background extension:
+    Add or modify the following line in the configuration file to preload the dblink extension:
 
     ```bash
     shared_preload_libraries = 'dblink'
