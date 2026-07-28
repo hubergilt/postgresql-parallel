@@ -530,8 +530,11 @@ BEGIN
     FOR i IN 1..8 LOOP
         BEGIN
             -- Establish a connection to the same database
-            sql := 'dbname=' || current_database() || 
-                   ' user=' || current_user;
+            -- Uses host=localhost (TCP) + password so dblink authenticates via
+            -- md5/scram instead of Unix-socket peer auth (which would check the
+            -- OS user of the *server* backend process, not the client session).
+            sql := 'host=localhost port=5432 dbname=' || current_database() || 
+                   ' user=' || current_user || ' password=huber';
             
             PERFORM dblink_connect(conn_names[i], sql);
             
