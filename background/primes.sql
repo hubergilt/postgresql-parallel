@@ -492,7 +492,11 @@ LANGUAGE plpgsql AS $$
 DECLARE
     proc_names TEXT[] := ARRAY['procedure1', 'procedure2', 'procedure3', 'procedure4', 
                                 'procedure5', 'procedure6', 'procedure7', 'procedure8'];
-    worker_pids INTEGER[];
+    -- pg_background 2.0 returns a (pid, cookie) composite handle instead of a bare
+    -- integer PID, so the array must hold pg_background_handle values, not INTEGER.
+    worker_handles pg_background_handle[];
+    v_pid INTEGER;
+    v_cookie BIGINT;
     i INTEGER;
     start_time TIMESTAMP;
     end_time TIMESTAMP;
@@ -512,15 +516,17 @@ BEGIN
     
     FOR i IN 1..8 LOOP
         BEGIN
-            -- Launch procedure in background worker
-            worker_pids[i] := pg_background_launch('CALL ' || proc_names[i] || '()');
+            -- Launch procedure in background worker; capture pid and cookie separately
+            SELECT pid, cookie INTO v_pid, v_cookie
+            FROM pg_background_launch('CALL ' || proc_names[i] || '()');
+            worker_handles[i] := ROW(v_pid, v_cookie)::pg_background_handle;
             
-            RAISE NOTICE '  [%/8] Launched % (Worker PID: %)', i, proc_names[i], worker_pids[i];
+            RAISE NOTICE '  [%/8] Launched % (Worker PID: %)', i, proc_names[i], (worker_handles[i]).pid;
             
         EXCEPTION WHEN OTHERS THEN
             RAISE WARNING '  [%/8] Failed to launch %: %', i, proc_names[i], SQLERRM;
             error_count := error_count + 1;
-            worker_pids[i] := NULL;
+            worker_handles[i] := NULL;
         END;
     END LOOP;
     
@@ -532,10 +538,10 @@ BEGIN
     RAISE NOTICE 'Phase 2: Collecting results...';
     
     FOR i IN 1..8 LOOP
-        IF worker_pids[i] IS NOT NULL THEN
+        IF worker_handles[i] IS NOT NULL THEN
             BEGIN
-                -- Wait for background worker to complete
-                PERFORM * FROM pg_background_result(worker_pids[i]) AS (result TEXT);
+                -- Wait for background worker to complete (pid + cookie, not just pid)
+                PERFORM * FROM pg_background_result((worker_handles[i]).pid, (worker_handles[i]).cookie) AS (result TEXT);
                 RAISE NOTICE '  [%/8] % completed successfully', i, proc_names[i];
                 
             EXCEPTION WHEN OTHERS THEN
@@ -545,7 +551,7 @@ BEGIN
             
             -- Detach from background worker
             BEGIN
-                PERFORM pg_background_detach(worker_pids[i]);
+                PERFORM pg_background_detach((worker_handles[i]).pid, (worker_handles[i]).cookie);
             EXCEPTION WHEN OTHERS THEN
                 -- Ignore detach errors
             END;

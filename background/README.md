@@ -19,25 +19,26 @@ sudo apt install -y \
     zlib1g-dev \
     git
 
+# Load postgresql module
+module load db/postgresql
+pgstart
+
 # Now build pg_background
 git clone https://github.com/vibhorkum/pg_background.git
 cd pg_background
 make clean
 make
-sudo make install
+sudo make install PG_CONFIG=$PGHOME/bin/pg_config
 
 # Restart PostgreSQL
-module load postgresql/16.11
 pgrestart
 ```
 
 - **Configure PostgreSQL**
-  Switch to the postgres user and edit the configuracion file:
   - **Edit** postgresql.conf:
 
     ```bash
-    $ sudo su - postgres
-    postgres@pop-os:~$ nvim 16/main/postgresql.conf
+    $ sudo nvim /etc/postgresql/16/main/postgresql.conf
     ```
 
     Add or modify the following line in the configuration file to preload the pg_background extension:
@@ -97,7 +98,7 @@ pgrestart
 - **Load the store procedure**
 
 ```sql
-psql -d bgdb -f primes.sql 
+psql -d bgdb -f primes.sql
 psql:primes.sql:16: NOTICE:  ✓ dblink extension created successfully!
 DO
 psql:primes.sql:31: NOTICE:  relation "processing_log" already exists, skipping
@@ -125,25 +126,26 @@ GRANT
 GRANT
 GRANT
 TRUNCATE TABLE
-psql:primes.sql:685: NOTICE:  
+psql:primes.sql:685: NOTICE:
 psql:primes.sql:685: NOTICE:  ========================================
 psql:primes.sql:685: NOTICE:  SETUP COMPLETED SUCCESSFULLY!
 psql:primes.sql:685: NOTICE:  ========================================
-psql:primes.sql:685: NOTICE:  
+psql:primes.sql:685: NOTICE:
 psql:primes.sql:685: NOTICE:  Available procedures:
 psql:primes.sql:685: NOTICE:    1. procedure1() to procedure8() - Individual range calculations
 psql:primes.sql:685: NOTICE:    2. run_procedures_parallel() - Parallel execution using dblink
-psql:primes.sql:685: NOTICE:  
+psql:primes.sql:685: NOTICE:
 psql:primes.sql:685: NOTICE:  To run parallel execution:
 psql:primes.sql:685: NOTICE:    CALL run_procedures_parallel();
-psql:primes.sql:685: NOTICE:  
+psql:primes.sql:685: NOTICE:
 psql:primes.sql:685: NOTICE:  To view results:
 psql:primes.sql:685: NOTICE:    SELECT * FROM processing_log ORDER BY range_start;
 psql:primes.sql:685: NOTICE:    SELECT SUM(prime_count) as total_primes, SUM(prime_sum) as total_sum FROM processing_log;
-psql:primes.sql:685: NOTICE:  
+psql:primes.sql:685: NOTICE:
 psql:primes.sql:685: NOTICE:  ========================================
 DO
 ```
+
 - **Run the store procedure**
 
 ```sql
@@ -153,7 +155,7 @@ NOTICE:  STARTING PARALLEL PRIME CALCULATION (DBLINK)
 NOTICE:  Time: 2026-01-07 22:00:59.56284
 NOTICE:  Task: Calculate prime sums from 1 to 8,000,000
 NOTICE:  ========================================
-NOTICE:  
+NOTICE:
 NOTICE:  Phase 1: Establishing connections and sending queries...
 NOTICE:    [1/8] Launched procedure1 (Connection: conn1)
 NOTICE:    [2/8] Launched procedure2 (Connection: conn2)
@@ -163,9 +165,9 @@ NOTICE:    [5/8] Launched procedure5 (Connection: conn5)
 NOTICE:    [6/8] Launched procedure6 (Connection: conn6)
 NOTICE:    [7/8] Launched procedure7 (Connection: conn7)
 NOTICE:    [8/8] Launched procedure8 (Connection: conn8)
-NOTICE:  
+NOTICE:
 NOTICE:  All queries sent. Now waiting for completion...
-NOTICE:  
+NOTICE:
 NOTICE:  Phase 2: Collecting results...
 NOTICE:    [1/8] procedure1 completed successfully
 NOTICE:    [2/8] procedure2 completed successfully
@@ -175,7 +177,7 @@ NOTICE:    [5/8] procedure5 completed successfully
 NOTICE:    [6/8] procedure6 completed successfully
 NOTICE:    [7/8] procedure7 completed successfully
 NOTICE:    [8/8] procedure8 completed successfully
-NOTICE:  
+NOTICE:
 NOTICE:  Phase 3: Cleaning up connections...
 NOTICE:    [1/8] Closed connection conn1
 NOTICE:    [2/8] Closed connection conn2
@@ -185,7 +187,7 @@ NOTICE:    [5/8] Closed connection conn5
 NOTICE:    [6/8] Closed connection conn6
 NOTICE:    [7/8] Closed connection conn7
 NOTICE:    [8/8] Closed connection conn8
-NOTICE:  
+NOTICE:
 NOTICE:  ========================================
 NOTICE:  PARALLEL EXECUTION COMPLETED
 NOTICE:  Start time:  2026-01-07 22:00:59.56284
@@ -193,7 +195,7 @@ NOTICE:  End time:    2026-01-07 22:01:05.790532
 NOTICE:  Duration:    00:00:06.227692
 NOTICE:  Errors:      0
 NOTICE:  ========================================
-NOTICE:  
+NOTICE:
 NOTICE:  Results Summary:
 NOTICE:  ----------------
 NOTICE:    procedure1: 78498 primes, sum: 37550402023, duration: 00:00:02.321429
@@ -204,18 +206,19 @@ NOTICE:    procedure5: 65367 primes, sum: 294095048847, duration: 00:00:05.32246
 NOTICE:    procedure6: 64336 primes, sum: 353794274146, duration: 00:00:05.738695
 NOTICE:    procedure7: 63799 primes, sum: 414670457917, duration: 00:00:05.969168
 NOTICE:    procedure8: 63129 primes, sum: 473422077077, duration: 00:00:06.193063
-NOTICE:  
+NOTICE:
 NOTICE:  TOTALS:
 NOTICE:    Total primes: 539777
 NOTICE:    Total sum:    2080483502248
 NOTICE:  ========================================
 CALL
 ```
+
 - **View results**
 
 ```sql
 bgdb=# SELECT * FROM processing_log ORDER BY range_start;
- id | procedure_name | range_start | range_end | prime_count |  prime_sum   |         start_time         |          end_time          |    duration     | status  |                message                
+ id | procedure_name | range_start | range_end | prime_count |  prime_sum   |         start_time         |          end_time          |    duration     | status  |                message
 ----+----------------+-------------+-----------+-------------+--------------+----------------------------+----------------------------+-----------------+---------+---------------------------------------
  45 | procedure1     |           1 |   1000000 |       78498 |  37550402023 | 2026-01-07 22:00:59.571163 | 2026-01-07 22:01:01.892592 | 00:00:02.321429 | SUCCESS | Found 78498 primes, sum: 37550402023
  46 | procedure2     |     1000001 |   2000000 |       70435 | 105363426899 | 2026-01-07 22:00:59.575334 | 2026-01-07 22:01:03.270553 | 00:00:03.695219 | SUCCESS | Found 70435 primes, sum: 105363426899
@@ -228,7 +231,7 @@ bgdb=# SELECT * FROM processing_log ORDER BY range_start;
 (8 rows)
 
 bgdb=# SELECT SUM(prime_count) as total_primes, SUM(prime_sum) as total_sum FROM processing_log;
- total_primes |   total_sum   
+ total_primes |   total_sum
 --------------+---------------
        539777 | 2080483502248
 (1 row)
